@@ -32,7 +32,8 @@ gymr_init <- function(low = -1, high = 1, action_len = 1){
 #' init_mem
 #' @export
 init_mem <- function(input, reward_fun){
-  reticulate::source_python(system.file("py", "gymr.py", package = "reinforcer"))
+  # reticulate::source_python(system.file("py", "gymr.py", package = "reinforcer"))
+  load_py_fun()
 
   mem <- rlang::new_environment()
   mem$memory <- c()

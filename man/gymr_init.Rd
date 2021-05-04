@@ -4,7 +4,7 @@
 \alias{gymr_init}
 \title{gymr_init}
 \usage{
-gymr_init(dim_state, low = -1, high = 1, action_len = 1)
+gymr_init(low = -1, high = 1, action_len = 1)
 }
 \description{
 gymr_init

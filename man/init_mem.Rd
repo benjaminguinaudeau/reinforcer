@@ -4,7 +4,7 @@
 \alias{init_mem}
 \title{init_mem}
 \usage{
-init_mem(input)
+init_mem(input, reward_fun)
 }
 \description{
 init_mem

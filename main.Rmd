@@ -9,9 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r}
-reticulate::use_condaenv("icaif", required = TRUE)
-options(python_init = TRUE)
-pacman::p_load(reticulate, tidyverse)
+
 ```
 
 
@@ -31,20 +29,18 @@ usethis::use_data(prices)
 + set the observation space? 
 
 ```{r}
-devtools::load_all()
+reticulate::use_condaenv("icaif", required = TRUE)
+options(python_init = TRUE)
+pacman::p_load(reticulate, tidyverse)
 
-input <- prices %>%
-  glimpse
+library(reinforcer)
 
-mem <- init_mem(input = input, reward_fun = get_reward)
+mem <- init_mem(input = glimpse(prices), reward_fun = get_reward)
 
 env_train <- py$gymr(init = "gymr_init", step = "gymr_step", reset = "gymr_reset", action_len = 1)
 
 model_a2c <- env_train %>%
-  train_rl(type = "A2C", steps = 200L)
-
-mem$meta_memory %>%
-  unnest(memory)
+  train_rl(type = "A2C", steps = 5000L)
 ```
 
 
