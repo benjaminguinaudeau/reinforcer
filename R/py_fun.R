@@ -1,13 +1,8 @@
 load_py_fun <- function(){
 
   script <- '
-from stable_baselines import GAIL, SAC
-from stable_baselines import ACER
-from stable_baselines import PPO2
-from stable_baselines import A2C
-from stable_baselines import DDPG
-from stable_baselines import TD3
-from stable_baselines.common.vec_env import DummyVecEnv
+from stable_baselines3 import A2C
+from stable_baselines3.common.vec_env import DummyVecEnv
 
 
 import numpy as np

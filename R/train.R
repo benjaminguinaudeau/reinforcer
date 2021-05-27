@@ -1,7 +1,7 @@
 
 #' train_rl
 #' @export
-train_rl <- function(env_train, type, model_name = NULL, steps = 25000L){
+train_rl <- function(env_train, type, steps = 25000L){
 
   if(type == "DDPG"){
     n_actions = tail(env_train$action_space$shape, -1)
@@ -17,14 +17,13 @@ train_rl <- function(env_train, type, model_name = NULL, steps = 25000L){
   model <- switch(
     type,
     "A2C" = py$A2C('MlpPolicy', env_train, verbose=0),
-    "ACER" = py$ACER('MlpPolicy', env_train, verbose=0),
+    "DQN" = py$DQN('MlpPolicy', env_train, verbose=0),
     "DDPG" = py$DDPG('MlpPolicy', env_train, param_noise = param_noise, action_noise = action_noise),
-    "PPO" = py$PPO2('MlpPolicy', env_train, ent_coef = 0.005, nminibatches = 8),
+    "PPO" = py$PPO('MlpPolicy', env_train, verbose = 0),
     "GAIL" = py$GAIL('MLpPolicy', env_train, dataset, verbose=1)
   )
 
-  model$learn(total_timesteps = steps)
-  if(!is.null(model_name)) model$save(glue::glue("{TRAINED_MODEL_DIR}/{model_name}"))
+  try({model$learn(total_timesteps = steps)})
 
   return(model)
 
@@ -33,6 +32,6 @@ train_rl <- function(env_train, type, model_name = NULL, steps = 25000L){
 #' retrain_rl
 #' @export
 retrain_rl <- function(model, steps){
-  model$learn(total_timesteps = steps)
+  try({model$learn(total_timesteps = steps, reset_num_timesteps = F)})
   return(model)
 }
