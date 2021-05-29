@@ -1,0 +1,123 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  eval = T,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# reinforcer
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+The goal of reinforcer is to provide an interface to python reinforcement learning libraries by emulating a gym-environment. 
+
+## Concept
+
+In a nutshell, reinforcement learning means that an agent (model) interacts (takes action based on the current state) with an environment and obtain a reward for each interaction. The models will attempt to optimize its reward by learning which actions lead to higher reward, hence learning how to behave in the environment. 
+An environment is a function that based on a given state and a proposed action returns a reward. Python users are used to use [gym-environment](https://gym.openai.com/docs), but gym-objects are not supported by reticulate, which prevents useRs from using python libraries for rl through reticulate. reinforcer allows to overcome this limit of reticulate and create gym-object in the r-session which can then be fed into reinforcement learning libraries. 
+
+## Installation
+
+``` r
+# install.packages("devtools")
+devtools::install_github("benjaminguinaudeau/reinforcer")
+```
+
+For this example, I will use [Stable Baselines 3](https://stable-baselines3.readthedocs.io/en/master/). As a simple game, I will use a custom environments where the agent is rewarded for return an action 1 when the state (a random number between 0 and 1) is higher than .5. 
+
+To use reinforcer, you need a python environment with your rl library installed (here stable-baselines3) 
+
+```{bash, eval = F}
+conda create -n reinforcer python
+conda activate reinforcer
+pip install stable-baselines3
+pip install numpy
+pip install pandas
+```
+
+
+```{r}
+reticulate::use_condaenv("reinforcer", required = TRUE)
+options(python_init = TRUE)
+
+library(reticulate)
+library(reinforcer)
+load_python_functions()
+```
+
+To emulate a gym environment, three functions need to be loaded into the global environment:
+
++ one init function, that defines the default state and the length of the action space
++ one step function, that takes a state, an action and returns the reward, the next state and whether the episode is terminated
++ one reset function, that is run a the beginning of each episode and returns the initialized space
+
+```{r}
+init <- function(){
+  list(
+    state = 0, # Default observation state
+    dim_state = c(1L,1L), # Dimension of the observation state
+    action_len = 2L #Number of possible actions
+  )
+}
+
+step <- function(state, actions, episode_index = 0, overall_index = 0, prev_reward = 0){
+  if(overall_index %% 1000 == 1) cat(overall_index, sep = "\n")
+
+  # Reward
+  reward <- dplyr::case_when(
+    state > .5  & actions == 0 ~ prev_reward + 1,
+    state > .5  & actions == 1 ~ prev_reward - 1,
+    state <= .5 & actions == 1 ~ prev_reward + 1,
+    state <= .5 & actions == 0 ~ prev_reward - 1
+  )
+  # Update State
+  next_state <- runif(1)
+
+  # Terminal state after 2 steps
+  terminal <- episode_index > 10
+
+  return(list(state = next_state, reward = reward, terminal = terminal))
+}
+
+reset <- function(){
+  list(
+    state = 0 # Initial state for the first step of the next episode
+  )
+}
+```
+
+Using these three functions, you can initialize the gymr environment.
+
+```{r}
+env_train <- py$gymr(init = "init", # Name of init_functin in the global_environment
+                     step = "step", # Name of step_functin in the global_environment
+                     reset = "reset") # Name of reset_functin in the global_environment
+```
+
+This gymr environment can then be feed into the rl model.
+
+```{r}
+sb <- import("stable_baselines3")
+
+model_dqn <- sb$DQN('MlpPolicy', env_train, learning_starts = 100)
+model_dqn$learn(total_timesteps = 20000L)
+```
+
+Evaluate the model 
+
+```{r}
+# Should be 1
+runif(10, 0, .5) %>% purrr::map_dbl(~model_dqn$predict(as.matrix(.x), deterministic = T)[[1]])
+# Should be 0
+runif(10, .5, 1) %>% purrr::map_dbl(~model_dqn$predict(as.matrix(.x), deterministic = T)[[1]])
+```
